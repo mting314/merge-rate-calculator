@@ -56,7 +56,7 @@ def upload_file():
 
             merge_rate = calculate_merge_rate(df, cityname=cityname)
             return render_template("base.html", merge_rate=merge_rate)
-    return render_template("base.html")
+    return render_template("base.html", merge_rate=None)
 
 
 '''
