@@ -2,26 +2,108 @@
 <link rel="stylesheet" href="{{ url_for('static',filename='styles/base.css') }}">
 
 <head>
-    <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"
+        integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
 </head>
 
 <title>Upload new File</title>
-<h1>Upload new File</h1>
-<form method=post enctype=multipart/form-data> <input type=file name=file>
-    <input type=submit value=Upload onclick="loading();">
-</form>
 
-{% if merge_rate is not none %}  
-<p>
-    The merge rate was {{ merge_rate }}.
-</p>
-{% endif %}
+<body>
+    <h1>Upload new File</h1>
+    <form method=post enctype=multipart/form-data> <input type=file name=file>
+        <input type=submit value=Upload onclick="loading();">
+    </form>
 
-<h1>If this is taking too long...</h1>
-<p>
-    Download the script and run manually.
-</p>
+    {% if merge_rate is not none %}
+    <p>
+        The merge rate was {{ merge_rate }}.
+    </p>
+    {% endif %}
 
+    {% if missing_my_fips is not none %}
+    <h2>Entries where we don't have FIPS</h2>
+    {% for table in missing_my_fips %}
+    {{ table|safe }}
+    {% endfor %}
+    <form action="/download_missing_my_fips" method="POST">
+        <input type="Submit" value="Download CSV">
+    </form>
+    {% endif %}
+
+
+    {% if actual_merge_error is not none %}
+    <h2>Entries where our FIPS isn't real</h2>
+    {% for table in actual_merge_error %}
+    {{ table|safe }}
+    {% endfor %}
+    {% endif %}
+
+
+    <h1>Explanation</h1>
+
+    <p>
+        We define the <b>merge rate</b> of a geocoded dataset to be the following ratio:
+        $$ \text{merge rate} = \frac{\text{number of entries with }}{\text{number of entries that \underline{aren't}
+        officer initiated}} $$
+    </p>
+
+    <p>
+        Now I know we were having a ton of weird issues with the merge rate being very low and not really having a good
+        idea. Whenever you upload a sheet here, it'll show you a sampling of rows that didn't have a match.
+    </p>
+    <p>
+        One crucial first step is that we first have to filter out non-officer initiated calls. This is translating the
+        work Andrew has done, and actually the entire reason I expect we're getting such different numbers between
+        <i>match</i> and <i>merge</i> rates.
+    </p>
+    <p>
+        Either way, after that, we merge on the file Andrew's been using. Then as far as I can tell, there are actually
+        two ways a match can fail.
+
+    </p>
+    <ol>
+        <li>
+            <b>Entries where we don't have FIPS</b> - we already know what this is, but these ones do count against the
+            merge rate.
+        </li>
+        <li>
+            <b>Entries where our FIPS isn't real</b> - this is what I thought merge rate was at the beginning: where we
+            <i>have our own</i> FIPS code, but that code doesn't look like it exists in Andrew's own census tracts file.
+        </li>
+    </ol>
+    <p>
+        This is more just confirming my suspicion, but <b>I've never seen an instance of the second case</b>. So my
+        hypothesis:
+        </b>
+    </p>
+    <blockquote>
+        The only reason merge rate is ever so low has <i>nothing</i> to do with any particular geographic location (i.e. it doesn't matter when we have addresses too close to another state or something). It <i>only</i> has to do with case 1, where we just don't originally have an FIPS code from our geocoding. The reason the merge and match rates are different? <b>It's just because the merge rate takes a subset of the data: non-police initiated calls</b>.
+    </blockquote>
+
+
+    <h1>If this is taking too long...</h1>
+    <p>
+        Download the script and run manually.
+    </p>
+    <ol>
+        <li>
+            <a href="https://raw.githubusercontent.com/mting314/merge-rate-calculator/master/calculations.py">Download
+                the
+                raw calculator script</a>.
+        </li>
+        <li>
+            <a href="https://raw.githubusercontent.com/mting314/merge-rate-calculator/master/constants.py">Download the
+                constants script</a> <i>to the same directory</i>.
+        </li>
+        <li>
+            Open a terminal in the location of this calculations file, and run
+            <pre>python calculations.py</pre>
+        </li>
+    </ol>
+</body>
 <script type="text/javascript">
     // <![CDATA[
     function loading() {

@@ -73,12 +73,18 @@ def calculate_merge_rate(df, cityname):
     df["officer_initiated"] = df.apply(determine_officer_initiated, cityname=cityname, axis=1)
     
     test_data = df.loc[df["officer_initiated"] == 0]
-    
-    total_overall = len(test_data)
 
+    merged = test_data.merge(demo_data, how="left", left_on="fips", right_on="fips_tract_10")
+    total_overall = len(merged)
 
+    # dfs that hold bad entries
+    missing_my_fips = merged.loc[merged["fips"].isnull()]
+    actual_merge_error = merged.loc[(~merged["fips"].isnull()) & (merged["fips_tract_10"].isnull())]
 
-    return len(test_data.merge(demo_data, left_on="fips", right_on="fips_tract_10"))/total_overall
+    return ((total_overall - len(missing_my_fips) - len(actual_merge_error))/total_overall,
+        missing_my_fips,
+        actual_merge_error
+    )
 
 if __name__ == "__main__":
     from tkinter import Tk     # from tkinter import Tk for Python 3.x
@@ -91,4 +97,4 @@ if __name__ == "__main__":
 
     df = pd.read_csv(filepath)
     df["FIPS"] = pd.to_numeric(df["FIPS"], errors='coerce')
-    print(calculate_merge_rate(df, cityname=cityname))
+    print(calculate_merge_rate(df, cityname=cityname)[0])
